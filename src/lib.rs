@@ -465,12 +465,20 @@ mod test {
 
     #[test]
     fn no_double_free() {
+        let mown = MownStr::from("hello world".to_string());
         let bx = {
-            let mown = MownStr::from("hello world".to_string());
             assert_eq!(&mown[..4], "hell");
             mown.to::<Box<str>>()
         };
         assert_eq!(&bx[..4], "hell");
+    }
+    #[test]
+    fn stacked_borrow() {
+        let mown = MownStr::from("hello world".to_string());
+        let mown_2 = mown.clone();
+        drop(mown);
+        dbg!(&mown_2);
+        assert_eq!(&mown_2[..4], "hell");
     }
 
     #[cfg(target_os = "linux")]
