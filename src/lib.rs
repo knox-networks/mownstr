@@ -26,7 +26,7 @@ pub struct MownStr<'a> {
     _phd: PhantomData<&'a str>,
 }
 
-// MownStr does not implement `Sync` and `Send` by default,
+// SAFETY: MownStr does not implement `Sync` and `Send` by default,
 // because NonNull<u8> does not.
 // However, it is safe to declare it as Sync and Send,
 // because MownStr is basically nothing more than a `&str`,
@@ -143,10 +143,9 @@ impl<'a> From<Box<str>> for MownStr<'a> {
     fn from(mut other: Box<str>) -> MownStr<'a> {
         let len = other.len();
         assert!(len <= LEN_MASK);
-        let addr = other.as_mut_ptr();
         let addr = unsafe {
             // SAFETY: ptr can not be null,
-            NonNull::new_unchecked(addr)
+            NonNull::new_unchecked(other.as_mut_ptr())
         };
 
         std::mem::forget(other);
@@ -520,8 +519,10 @@ mod test {
         let _ = MownStr::from(empty);
     }
 
+    #[cfg(target_os = "linux")]
     const CAP: usize = 100_000_000;
 
+    #[cfg(target_os = "linux")]
     fn get_rss_anon() -> usize {
         let txt = fs::read_to_string("/proc/self/status").expect("read proc status");
         let txt = txt.split("RssAnon:").nth(1).unwrap();
